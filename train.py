@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 from torchvision.models import resnet50, ResNet50_Weights
 from ptflops import get_model_complexity_info
 import yaml
+import mlflow
+import mlflow.pytorch
 
 # Load configuration from YAML file
 with open('config.yaml', 'r') as file:
@@ -63,6 +65,10 @@ def get_tranformation(choice):
 
 
 def train_model():
+
+
+    mlflow.start_run()
+
     # Device configuration
     device = torch.device(config['device'] if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
@@ -71,6 +77,14 @@ def train_model():
     num_epochs = config['training']['num_epochs']
     batch_size = config['training']['batch_size']
     initial_lr = config['training']['initial_lr']
+
+    # Log hyperparameters
+    mlflow.log_params({
+        'num_epochs': num_epochs,
+        'batch_size': batch_size,
+        'initial_lr': initial_lr,
+        'transform_choice': config['training']['transform_choice']
+    })
 
     # Get transformation based on config
     transform_name, transform = get_tranformation(config['training']['transform_choice'])
@@ -111,6 +125,11 @@ def train_model():
     macs, params = get_model_complexity_info(model, (1, 224, 224), print_per_layer_stat=False, as_strings=False)
     flops = 2 * macs
     print(f'Model Parameters: {params} | FLOPS: {flops}')
+
+    mlflow.log_metrics({  # Added model complexity logging
+        'model_parameters': params,
+        'flops': flops
+    })
 
     summary_input = (1, 1, 224, 244)
     #summary(model, summary_input)
@@ -202,10 +221,18 @@ def train_model():
         # Update learning rate
         scheduler.step(val_epoch_accuracy)
 
+        mlflow.log_metrics({  # Added metric logging
+            'train_loss': epoch_loss,
+            'train_accuracy': epoch_accuracy,
+            'val_loss': val_epoch_loss,
+            'val_accuracy': val_epoch_accuracy
+        }, step=epoch)
+
         # Save best model
         if val_epoch_accuracy > best_val_accuracy:
             best_val_accuracy = val_epoch_accuracy
             torch.save(model.state_dict(), f'best_fashion_mnist_resnet_{transform_name}.pth')
+            mlflow.log_artifact(f'best_fashion_mnist_resnet_{transform_name}.pth')
 
         print(f'Epoch [{epoch + 1}/{num_epochs}]')
         print(f'Train Loss: {epoch_loss:.4f}, Train Accuracy: {epoch_accuracy:.2f}%')
@@ -234,6 +261,11 @@ def train_model():
     plt.tight_layout()
     plt.savefig(f'training_metrics_{transform_name}.png')
     plt.close()
+
+    mlflow.log_artifact(f'training_metrics_{transform_name}.png')  # Log metrics plot
+
+    mlflow.pytorch.log_model(model, "best_model")
+    mlflow.end_run()
 
 
 if __name__ == '__main__':
