@@ -66,7 +66,6 @@ def get_tranformation(choice):
 
 def train_model():
 
-
     mlflow.start_run()
 
     # Device configuration
