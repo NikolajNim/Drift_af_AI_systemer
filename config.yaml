@@ -1,0 +1,55 @@
+training:
+  num_epochs: 20
+  batch_size: 64
+  initial_learning_rate: 0.0001
+  pretrained_lr_factor: 10
+  patience: 3
+  lr_decay_factor: 0.1
+  device: "cuda"
+
+model:
+  name: "ModifiedResNet50"
+  num_classes: 10
+  pretrained: true
+
+transforms:
+  standard:
+    - ToTensor
+    - Normalize: [0.5, 0.5]
+  data_aug:
+    - RandomHorizontalFlip: 0.2
+    - RandomApply:
+        - RandomRotation: 20
+        - p: 0.2
+    - RandomApply:
+        - ColorJitter:
+            brightness: 0.3
+        - p: 0.2
+    - ToTensor
+    - Normalize: [0.5, 0.5]
+
+data:
+  dataset: "FashionMNIST"
+  root: "./data"
+  train_split: 0.8
+  download: true
+  num_workers: 4
+
+optimizer:
+  type: "Adam"
+  params:
+    pretrained_layers_lr: 0.0001
+    new_layers_lr: 0.001
+
+scheduler:
+  type: "ReduceLROnPlateau"
+  mode: "max"
+  factor: 0.1
+  patience: 3
+  verbose: true
+
+logging:
+  save_best_model: true
+  save_path: "best_fashion_mnist_resnet.pth"
+  plot_metrics: true
+  plot_save_path: "training_metrics.png"
