@@ -2,10 +2,10 @@ training:
   num_epochs: 20
   batch_size: 64
   initial_learning_rate: 0.0001
-  pretrained_lr_factor: 10  # Multiplier for new layers
-  patience: 3  # Patience for LR scheduler
+  pretrained_lr_factor: 10
+  patience: 3
   lr_decay_factor: 0.1
-  device: "cuda"  # Options: "cuda", "cpu"
+  device: "cuda"
 
 model:
   name: "ModifiedResNet50"
