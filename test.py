@@ -2,7 +2,6 @@ import torch
 import torchvision
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
-import numpy as np
 from train import ModifiedResNet50
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, classification_report
