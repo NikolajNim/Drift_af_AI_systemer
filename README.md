@@ -3,7 +3,7 @@ TO DO
 Lektion 2 
 
 - [x] Create config file
-- [ ] Setup local pre-commit and add some checks
+- [x] Setup local pre-commit and add some checks
 - [x] Add unit tests to the core functionality of your project codebase
 - [x] Load the configurations and manage your hyperparameters
 - [x] Setup a Github automation procedure to execute the unittest at new commit
