@@ -2,7 +2,7 @@ TO DO
 
 **Lektion 1 **
 
-- [x] Setup version control for your data, or part of your data, and model
+- [ ] Setup version control for your data, or part of your data, and model
 
       
 **Lektion 2 **
@@ -19,5 +19,11 @@ TO DO
 
 
 **Lektion 3 **
+
+
+- [ ] Implement a training script (train_ddp.py) that scales the training using data parallelism
+- [ ] Implement a memory optimization strategy
+- [ ] Scale the training with data parallelism across multiple nodes
+- [ ] Implement the ZeRO optimizer using DeepSpeed and experiment with the different stages
 
 
