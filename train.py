@@ -229,30 +229,6 @@ def train_model():
         print(f'Train Loss: {epoch_loss:.4f}, Train Accuracy: {epoch_accuracy:.2f}%')
         print(f'Val Loss: {val_epoch_loss:.4f}, Val Accuracy: {val_epoch_accuracy:.2f}%')
         print('-' * 50)
-
-    # Plot training metrics
-    plt.figure(figsize=(12, 4))
-
-    plt.subplot(1, 2, 1)
-    plt.plot(train_losses, label='Train')
-    plt.plot(val_losses, label='Validation')
-    plt.title('Loss over epochs')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.legend()
-
-    plt.subplot(1, 2, 2)
-    plt.plot(train_accuracies, label='Train')
-    plt.plot(val_accuracies, label='Validation')
-    plt.title('Accuracy over epochs')
-    plt.xlabel('Epoch')
-    plt.ylabel('Accuracy (%)')
-    plt.legend()
-
-    plt.tight_layout()
-    plt.savefig(f'training_metrics_{transform_name}.png')
-    plt.close()
-
     # Stop timer
     end_time = time.time()
     training_time = end_time - start_time
