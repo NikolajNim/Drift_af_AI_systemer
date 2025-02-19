@@ -8,8 +8,7 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader, DistributedSampler
 from torchvision.models import resnet50, ResNet50_Weights
 import yaml
-import mlflow
-import mlflow.pytorch
+import wandb
 import os
 
 # Load configuration from YAML file

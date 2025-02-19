@@ -9,6 +9,7 @@ from torchvision.models import resnet50, ResNet50_Weights
 from ptflops import get_model_complexity_info
 import yaml
 import wandb
+import time
 
 # Load configuration from YAML file
 with open('config.yaml', 'r') as file:
@@ -65,6 +66,9 @@ def get_tranformation(choice):
 def train_model():
     # Initialize wandb
     wandb.init(project="fashion-mnist-resnet", config=config)
+
+    # Start timer
+    start_time = time.time()
 
     # Device configuration
     device = torch.device(config['device'] if torch.cuda.is_available() else 'cpu')
@@ -248,6 +252,17 @@ def train_model():
     plt.tight_layout()
     plt.savefig(f'training_metrics_{transform_name}.png')
     plt.close()
+
+    # Stop timer
+    end_time = time.time()
+    training_time = end_time - start_time
+    minutes = int(training_time // 60)
+    seconds = int(training_time % 60)
+
+    print(f"Total training time: {minutes} minutes and {seconds} seconds")
+
+    # Log training time to wanb
+    wandb.log({'training_time_minutes': minutes, 'training_time_seconds': seconds})
 
     # Log metrics plot to wandb
     wandb.log({"training_metrics": wandb.Image(f'training_metrics_{transform_name}.png')})
