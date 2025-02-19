@@ -261,7 +261,7 @@ def train_model():
 
     print(f"Total training time: {minutes} minutes and {seconds} seconds")
 
-    # Log training time to wanb
+    # Log training time to wandb
     wandb.log({'training_time_minutes': minutes, 'training_time_seconds': seconds})
 
     # Log metrics plot to wandb
@@ -269,7 +269,20 @@ def train_model():
 
     # Save the final model
     torch.save(model.state_dict(), 'final_fashion_mnist_resnet.pth')
-    wandb.save('final_fashion_mnist_resnet.pth')
+
+    # Log the final model as an artifact and add it to the model registry
+    model_artifact = wandb.Artifact(
+        name="fashion_mnist_resnet",
+        type="model",
+        description="ResNet50 model trained on Fashion MNIST dataset",
+        metadata=config
+    )
+    model_artifact.add_file('final_fashion_mnist_resnet.pth')
+    wandb.log_artifact(model_artifact, aliases=["latest", "best"])
+
+    # Optionally, link the artifact to a model registry
+    # You need to create a model registry in Wandb first
+    wandb.log_artifact(model_artifact, aliases=["production"])
 
     # Finish the wandb run
     wandb.finish()
