@@ -11,6 +11,6 @@ model:
 data:
   dataset_path: './data'
   train_val_split: 0.8
-  num_workers: 4
+  num_workers: 10
 
 device: 'cuda'
