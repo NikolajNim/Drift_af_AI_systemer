@@ -30,7 +30,7 @@ TO DO
 
 
 - [x] Implement a training script (train_ddp.py) that scales the training using data parallelism (Bør checkes, tror ikke det virker)
-- [ ] Implement a memory optimization strategy
+- [x] Implement a memory optimization strategy
 - [ ] Scale the training with data parallelism across multiple nodes
 - [ ] Implement the ZeRO optimizer using DeepSpeed and experiment with the different stages
 
