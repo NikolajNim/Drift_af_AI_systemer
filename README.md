@@ -21,7 +21,7 @@ TO DO
 **Lektion 3 **
 
 
-- [ ] Implement a training script (train_ddp.py) that scales the training using data parallelism
+- [x] Implement a training script (train_ddp.py) that scales the training using data parallelism
 - [ ] Implement a memory optimization strategy
 - [ ] Scale the training with data parallelism across multiple nodes
 - [ ] Implement the ZeRO optimizer using DeepSpeed and experiment with the different stages
