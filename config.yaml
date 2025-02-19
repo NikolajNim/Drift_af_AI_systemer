@@ -3,6 +3,7 @@ training:
   batch_size: 64
   initial_lr: 0.0001
   transform_choice: 1
+  use_ddp: True
 
 model:
   num_classes: 10
