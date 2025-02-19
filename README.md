@@ -1,6 +1,11 @@
 TO DO 
 
-Lektion 2 
+**Lektion 1 **
+
+- [x] Setup version control for your data, or part of your data, and model
+
+      
+**Lektion 2 **
 
 - [x] Create config file
 - [x] Setup local pre-commit and add some checks
@@ -12,5 +17,7 @@ Lektion 2
 - [ ] Automatically add the trained model to a model registry e.g. MLFlow
 - [ ] Automatically trigger evaluation of the trained model e.g. using Github Actions
 
+
+**Lektion 3 **
 
 
