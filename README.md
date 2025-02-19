@@ -1,5 +1,13 @@
 TO DO 
 
+**Nice to have **
+
+- [ ] Precomit der checker om et comit indeholder en binær fil
+
+
+
+**Need to have **
+
 **Lektion 1 **
 
 - [ ] Setup version control for your data, or part of your data, and model
