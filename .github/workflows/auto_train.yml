@@ -12,15 +12,8 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
-
-      - name: Install Dependencies
+      - name: Run Training Script in Singularity
         run: |
-          pip install -r requirements.txt
-
-      - name: Run Training Script
-        run: |
-          python train.py  # Make sure this script is set up to log to Weights & Biases
+          srun --gres=gpu:1 --pty singularity exec --nv /ceph/container/pytorch/pytorch_24.09.sif bash -c "
+          pip install -r requirements.txt &&
+          python train.py"
