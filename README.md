@@ -34,4 +34,8 @@ TO DO
 - [ ] Scale the training with data parallelism across multiple nodes
 - [ ] Implement the ZeRO optimizer using DeepSpeed and experiment with the different stages
 
+**Lektion 4 **
 
+- [ ] Compress your model by post-training quantization e.g. using TensorRT or PyTorch
+- [ ] Benchmark your model in terms of inference time and accuracy after compression.
+- [ ] Implement an inference script that utilizes batch inference with the compressed model
