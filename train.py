@@ -11,6 +11,9 @@ import yaml
 import wandb
 import time
 
+wandb.login(key="b881bb0c188ba3a391651a118e8cbcd3fc00a212")
+
+
 # Load configuration from YAML file
 with open('config.yaml', 'r') as file:
     config = yaml.safe_load(file)
