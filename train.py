@@ -3,14 +3,13 @@ import torch.nn as nn
 import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
-#from torchinfo import summary
 from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 from torchvision.models import resnet50, ResNet50_Weights
 from ptflops import get_model_complexity_info
 import yaml
-import mlflow
-import mlflow.pytorch
+import wandb
+import time
 
 # Load configuration from YAML file
 with open('config.yaml', 'r') as file:
@@ -65,8 +64,11 @@ def get_tranformation(choice):
 
 
 def train_model():
+    # Initialize wandb
+    wandb.init(project="fashion-mnist-resnet", config=config)
 
-    mlflow.start_run()
+    # Start timer
+    start_time = time.time()
 
     # Device configuration
     device = torch.device(config['device'] if torch.cuda.is_available() else 'cpu')
@@ -76,14 +78,6 @@ def train_model():
     num_epochs = config['training']['num_epochs']
     batch_size = config['training']['batch_size']
     initial_lr = config['training']['initial_lr']
-
-    # Log hyperparameters
-    mlflow.log_params({
-        'num_epochs': num_epochs,
-        'batch_size': batch_size,
-        'initial_lr': initial_lr,
-        'transform_choice': config['training']['transform_choice']
-    })
 
     # Get transformation based on config
     transform_name, transform = get_tranformation(config['training']['transform_choice'])
@@ -125,13 +119,10 @@ def train_model():
     flops = 2 * macs
     print(f'Model Parameters: {params} | FLOPS: {flops}')
 
-    mlflow.log_metrics({  # Added model complexity logging
+    wandb.log({
         'model_parameters': params,
         'flops': flops
     })
-
-    summary_input = (1, 1, 224, 244)
-    #summary(model, summary_input)
 
     # Loss and optimizer
     criterion = nn.CrossEntropyLoss()
@@ -220,7 +211,8 @@ def train_model():
         # Update learning rate
         scheduler.step(val_epoch_accuracy)
 
-        mlflow.log_metrics({  # Added metric logging
+        # Log metrics to wandb
+        wandb.log({
             'train_loss': epoch_loss,
             'train_accuracy': epoch_accuracy,
             'val_loss': val_epoch_loss,
@@ -231,40 +223,45 @@ def train_model():
         if val_epoch_accuracy > best_val_accuracy:
             best_val_accuracy = val_epoch_accuracy
             torch.save(model.state_dict(), f'best_fashion_mnist_resnet_{transform_name}.pth')
-            mlflow.log_artifact(f'best_fashion_mnist_resnet_{transform_name}.pth')
+            wandb.save(f'best_fashion_mnist_resnet_{transform_name}.pth')
 
         print(f'Epoch [{epoch + 1}/{num_epochs}]')
         print(f'Train Loss: {epoch_loss:.4f}, Train Accuracy: {epoch_accuracy:.2f}%')
         print(f'Val Loss: {val_epoch_loss:.4f}, Val Accuracy: {val_epoch_accuracy:.2f}%')
         print('-' * 50)
+    # Stop timer
+    end_time = time.time()
+    training_time = end_time - start_time
+    minutes = int(training_time // 60)
+    seconds = int(training_time % 60)
 
-    # Plot training metrics
-    plt.figure(figsize=(12, 4))
+    print(f"Total training time: {minutes} minutes and {seconds} seconds")
 
-    plt.subplot(1, 2, 1)
-    plt.plot(train_losses, label='Train')
-    plt.plot(val_losses, label='Validation')
-    plt.title('Loss over epochs')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.legend()
+    # Log training time to wandb
+    wandb.log({'training_time_minutes': minutes, 'training_time_seconds': seconds})
 
-    plt.subplot(1, 2, 2)
-    plt.plot(train_accuracies, label='Train')
-    plt.plot(val_accuracies, label='Validation')
-    plt.title('Accuracy over epochs')
-    plt.xlabel('Epoch')
-    plt.ylabel('Accuracy (%)')
-    plt.legend()
+    # Log metrics plot to wandb
+    wandb.log({"training_metrics": wandb.Image(f'training_metrics_{transform_name}.png')})
 
-    plt.tight_layout()
-    plt.savefig(f'training_metrics_{transform_name}.png')
-    plt.close()
+    # Save the final model
+    torch.save(model.state_dict(), 'final_fashion_mnist_resnet.pth')
 
-    mlflow.log_artifact(f'training_metrics_{transform_name}.png')  # Log metrics plot
+    # Log the final model as an artifact and add it to the model registry
+    model_artifact = wandb.Artifact(
+        name="fashion_mnist_resnet",
+        type="model",
+        description="ResNet50 model trained on Fashion MNIST dataset",
+        metadata=config
+    )
+    model_artifact.add_file('final_fashion_mnist_resnet.pth')
+    wandb.log_artifact(model_artifact, aliases=["latest", "best"])
 
-    mlflow.pytorch.log_model(model, "best_model")
-    mlflow.end_run()
+    # Optionally, link the artifact to a model registry
+    # You need to create a model registry in Wandb first
+    wandb.log_artifact(model_artifact, aliases=["production"])
+
+    # Finish the wandb run
+    wandb.finish()
 
 
 if __name__ == '__main__':
