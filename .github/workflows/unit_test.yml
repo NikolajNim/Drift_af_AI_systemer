@@ -21,5 +21,5 @@ jobs:
           pip install pytest torch torchvision pyyaml
 
       - name: Run Pytest
-        run: pytest Misc/train_unit_test.py -v
+        run: pytest train_unit_test.py -v
 
