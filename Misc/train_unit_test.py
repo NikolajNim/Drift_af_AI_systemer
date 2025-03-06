@@ -4,7 +4,7 @@ from train import ModifiedResNet50  # Import your model class
 import yaml
 
 # Load config
-with open("config.yaml", "r") as file:
+with open("../config.yaml", "r") as file:
     config = yaml.safe_load(file)
 
 # Expected settings
