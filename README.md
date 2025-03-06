@@ -3,6 +3,7 @@ TO DO
 **Nice to have **
 
 - [ ] Precomit der checker om et comit indeholder en binær fil
+- [ ] Tilføj Wandb API nøgle direkte i inference
 
 
 
@@ -10,7 +11,7 @@ TO DO
 
 **Lektion 1 **
 
-- [ ] Setup version control for your data, or part of your data, and model
+- [x] Setup version control for your data, or part of your data, and model
 
       
 **Lektion 2**
