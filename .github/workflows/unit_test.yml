@@ -22,3 +22,4 @@ jobs:
 
       - name: Run Pytest
         run: pytest Misc/train_unit_test.py -v
+
