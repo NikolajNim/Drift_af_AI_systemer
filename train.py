@@ -243,8 +243,6 @@ def train_model():
     # Log training time to wandb
     wandb.log({'training_time_minutes': minutes, 'training_time_seconds': seconds})
 
-    # Log metrics plot to wandb
-    wandb.log({"training_metrics": wandb.Image(f'training_metrics_{transform_name}.png')})
 
     # Save the final model
     torch.save(model.state_dict(), 'final_fashion_mnist_resnet.pth')
