@@ -10,6 +10,7 @@ from ptflops import get_model_complexity_info
 import yaml
 import wandb
 import time
+import deepspeed
 
 wandb.login(key="b881bb0c188ba3a391651a118e8cbcd3fc00a212")
 
@@ -134,10 +135,35 @@ def train_model():
     params_new = [p for n, p in model.named_parameters() if 'fc' in n]
     params_pretrained = [p for n, p in model.named_parameters() if 'fc' not in n]
 
+
+    ds_config = {
+        "train_batch_size": 64,
+        "gradient_accumulation_steps": 1,
+
+        "optimizer":{
+            "type":"Adam",
+        "params":{
+        "lr": initial_lr,
+        "params":params_pretrained,
+        }
+    },
+        "fp16": {
+            "enabled": True
+        },
+        "zero_optimization": {
+    "stage": 1
+}
+    }
+
+    model_engine, optimizer = deepspeed.initialize(model=model,
+                                                   model_parameters=params)
+
+    """
     optimizer = optim.Adam([
         {'params': params_pretrained, 'lr': initial_lr},
         {'params': params_new, 'lr': initial_lr * 10}
     ])
+    """
 
     # Learning rate scheduler
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.1, patience=3, verbose=True)
@@ -157,17 +183,17 @@ def train_model():
         total = 0
 
         for i, (images, labels) in enumerate(train_loader):
-            images = images.to(device)
-            labels = labels.to(device)
+            images = images.to(model_engine.device)
+            labels = labels.to(model_engine.device)
 
             # Forward pass
-            outputs = model(images)
+            outputs = model_engine(images)
             loss = criterion(outputs, labels)
 
             # Backward and optimize
             optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+            model_engine.backward(loss)
+            model_engine.step()
 
             # Calculate accuracy
             _, predicted = torch.max(outputs.data, 1)
