@@ -41,7 +41,7 @@ TO DO
 - [ ] Benchmark your model in terms of inference time and accuracy after compression.
 - [ ] Implement an inference script that utilizes batch inference with the compressed model
 
-**Lektion 7**
+**Lektion 6**
 
 - [ ] Use carbontracker to track the carbon footprint of your model during training and inference and make predictions for total cost (e.g. yearly, or per request)
 - [ ] Set up a pipeline to detect drift. You can focus on data, or concept drift, or both. If the dataset for your course project is not suitable for this, artificially shift the data.
