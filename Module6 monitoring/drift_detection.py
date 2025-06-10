@@ -1,3 +1,5 @@
+from flask import Flask, Response
+from prometheus_client import Gauge, Histogram, generate_latest
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -7,13 +9,20 @@ from torch.utils.data import DataLoader
 from torchvision.models import resnet50, ResNet50_Weights
 import numpy as np
 from scipy.stats import ks_2samp
-from tqdm import tqdm
 import time
+import threading
+
+# --- App & Metrics Definition ---
+app = Flask(__name__)
+
+PIPELINE_DURATION = Histogram('drift_pipeline_duration_seconds', 'Duration of the full drift detection pipeline')
+DRIFT_DETECTED_GAUGE = Gauge('drift_detected', 'A binary gauge indicating if drift was detected (1=yes, 0=no)')
+P_VALUE_GAUGE = Gauge('drift_p_value', 'The p-value from the KS-test for the feature that triggered drift detection')
 
 # --- Configuration ---
 config = {
     'training': {
-        'num_epochs': 2,
+        'num_epochs': 1,
         'batch_size': 128,
         'lr': 0.001,
     },
@@ -22,7 +31,7 @@ config = {
         'num_workers': 2,
     },
     'drift': {
-        'noise_level': 0.5,
+        'noise_level': 0.01,
         'p_value_threshold': 0.05,
     },
     'device': 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -74,57 +83,31 @@ def train_baseline_model():
     optimizer = optim.Adam(model.parameters(), lr=config['training']['lr'])
 
     model.train()
-    total_batches = len(train_loader)
-
     for epoch in range(config['training']['num_epochs']):
-        epoch_start_time = time.time()
-        running_loss = 0.0
-
-        # Create progress bar for current epoch
-        pbar = tqdm(train_loader, desc=f'Epoch {epoch + 1}/{config["training"]["num_epochs"]}')
-
-        for batch_idx, (images, labels) in enumerate(pbar):
+        for i, (images, labels) in enumerate(train_loader):
             images, labels = images.to(device), labels.to(device)
-
             optimizer.zero_grad()
             outputs = model(images)
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
+            if (i + 1) % 100 == 0:
+                print(f"Epoch [{epoch+1}/{config['training']['num_epochs']}], Step [{i+1}/{len(train_loader)}], Loss: {loss.item():.4f}")
 
-            running_loss += loss.item()
-
-            # Update progress bar with current loss
-            avg_loss = running_loss / (batch_idx + 1)
-            pbar.set_postfix({
-                'Loss': f'{loss.item():.4f}',
-                'Avg Loss': f'{avg_loss:.4f}',
-                'Batch': f'{batch_idx + 1}/{total_batches}'
-            })
-
-        epoch_time = time.time() - epoch_start_time
-        final_avg_loss = running_loss / total_batches
-
-        print(f"\nEpoch {epoch + 1} completed in {epoch_time:.2f}s")
-        print(f"Average Loss: {final_avg_loss:.4f}")
-        print("-" * 50)
-
-    torch.save(model.state_dict(), 'baseline_model.pth')
     print("Baseline model training finished.")
     return model
 
 
 # --- Step 2: Extract Features ---
-def get_features(model, data_loader, desc="Extracting features"):
+def get_features(model, data_loader):
     device = torch.device(config['device'])
     feature_extractor = FeatureExtractor(model).to(device)
     feature_extractor.eval()
 
     all_features = []
 
-    # Add progress bar for feature extraction
     with torch.no_grad():
-        for images, _ in tqdm(data_loader, desc=desc):
+        for images, _ in data_loader:
             images = images.to(device)
             features = feature_extractor(images)
             all_features.append(features.cpu().numpy())
@@ -137,62 +120,92 @@ def detect_drift(ref_features, new_features):
     print("\n--- Performing drift detection ---")
     num_features = ref_features.shape[1]
     drift_detected = False
+    p_value_for_drift = 1.0 # Default p-value if no drift is found
 
-    # Add progress bar for drift detection
-    for i in tqdm(range(num_features), desc="Checking feature dimensions for drift"):
-        # Kolmogorov-Smirnov test
+    for i in range(num_features):
         ks_stat, p_value = ks_2samp(ref_features[:, i], new_features[:, i])
 
         if p_value < config['drift']['p_value_threshold']:
-            print(f"\nDrift detected in feature dimension {i + 1} (p-value: {p_value:.4f})")
+            print(f"Drift detected in feature dimension {i+1} (p-value: {p_value:.4f})")
             drift_detected = True
-            break  # Stop at first sign of drift for efficiency
+            p_value_for_drift = p_value
+            break
 
     if not drift_detected:
-        print("\nNo significant data drift detected.")
+        print("No significant data drift detected.")
 
-    return drift_detected
+    return drift_detected, p_value_for_drift
 
 
-if __name__ == '__main__':
-    print(f"Using device: {config['device']}")
-    print(f"Training configuration: {config['training']}")
-    print("=" * 60)
+def run_pipeline_background():
+    """This function runs the pipeline and is meant to be called in a background thread."""
+    print("--- Starting background drift detection pipeline ---")
+    start_time = time.time()
+    
+    # Run the main pipeline logic
+    run_pipeline()
+    
+    duration = time.time() - start_time
+    PIPELINE_DURATION.observe(duration)
+    print(f"--- Background pipeline finished in {duration:.2f}s ---")
 
+
+def run_pipeline():
+    """The main function that runs the entire pipeline."""
     # 1. Train model
     baseline_model = train_baseline_model()
-
+    
     # 2. Create reference and drifted datasets
-    print("\n--- Setting up datasets ---")
     base_transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
     drift_transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Lambda(lambda x: x + torch.randn_like(x) * config['drift']['noise_level']),
         transforms.Normalize((0.5,), (0.5,))
     ])
-
+    
     ref_dataset = torchvision.datasets.FashionMNIST(
         root=config['data']['dataset_path'], train=False, transform=base_transform, download=True
     )
     drifted_dataset = torchvision.datasets.FashionMNIST(
         root=config['data']['dataset_path'], train=False, transform=drift_transform, download=True
     )
-
+    
     ref_loader = DataLoader(ref_dataset, batch_size=config['training']['batch_size'])
     drifted_loader = DataLoader(drifted_dataset, batch_size=config['training']['batch_size'])
-
-    print(f"Reference dataset size: {len(ref_dataset)}")
-    print(f"Drifted dataset size: {len(drifted_dataset)}")
-
+    
     # 3. Extract features
-    print("\n--- Feature Extraction Phase ---")
-    reference_features = get_features(baseline_model, ref_loader, "Extracting reference features")
-    new_features = get_features(baseline_model, drifted_loader, "Extracting drifted features")
-
-    print(f"Reference features shape: {reference_features.shape}")
-    print(f"New features shape: {new_features.shape}")
-
+    print("\n--- Extracting features from reference data ---")
+    reference_features = get_features(baseline_model, ref_loader)
+    
+    print("\n--- Extracting features from drifted data ---")
+    new_features = get_features(baseline_model, drifted_loader)
+    
     # 4. Detect drift
-    detect_drift(reference_features, new_features)
+    drift_detected, p_value = detect_drift(reference_features, new_features)
+    
+    # 5. Update Prometheus metrics
+    DRIFT_DETECTED_GAUGE.set(1 if drift_detected else 0)
+    P_VALUE_GAUGE.set(p_value)
 
-    print("\n--- Process completed ---")
+
+# --- Flask Routes ---
+@app.route('/')
+def index():
+    return "Drift Detection App is running. Use /run to start the pipeline and /metrics to see results."
+
+@app.route('/metrics')
+def metrics():
+    return Response(generate_latest(), mimetype='text/plain; version=0.0.4; charset=utf-8')
+
+@app.route('/run')
+def run_drift_detection_endpoint():
+    # Run the pipeline in a background thread to avoid HTTP timeouts
+    thread = threading.Thread(target=run_pipeline_background)
+    thread.start()
+    return "Drift detection pipeline started in the background. Check Docker logs for progress and Grafana for results."
+
+if __name__ == '__main__':
+    # Set initial gauge values
+    DRIFT_DETECTED_GAUGE.set(0)
+    P_VALUE_GAUGE.set(1)
+    app.run(host='0.0.0.0', port=5001)

@@ -1,0 +1,6 @@
+Flask
+prometheus-client
+torch
+torchvision
+scipy
+numpy 
