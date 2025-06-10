@@ -3,7 +3,7 @@ TO DO
 **Nice to have **
 
 - [ ] Precomit der checker om et comit indeholder en binær fil
-- [ ] Tilføj Wandb API nøgle direkte i inference
+- [x] Tilføj Wandb API nøgle direkte i inference
 
 
 
@@ -37,14 +37,14 @@ TO DO
 
 **Lektion 4**
 
-- [ ] Compress your model by post-training quantization e.g. using TensorRT or PyTorch
-- [ ] Benchmark your model in terms of inference time and accuracy after compression.
-- [ ] Implement an inference script that utilizes batch inference with the compressed model
+- [x] Compress your model by post-training quantization e.g. using TensorRT or PyTorch
+- [x] Benchmark your model in terms of inference time and accuracy after compression.
+- [x] Implement an inference script that utilizes batch inference with the compressed model
 
 **Lektion 6**
 
-- [ ] Use carbontracker to track the carbon footprint of your model during training and inference and make predictions for total cost (e.g. yearly, or per request)
-- [ ] Set up a pipeline to detect drift. You can focus on data, or concept drift, or both. If the dataset for your course project is not suitable for this, artificially shift the data.
+- [x] Use carbontracker to track the carbon footprint of your model during training and inference and make predictions for total cost (e.g. yearly, or per request)
+- [x] Set up a pipeline to detect drift. You can focus on data, or concept drift, or both. If the dataset for your course project is not suitable for this, artificially shift the data.
 - [ ] Set up a monitoring framework to collect and visualize relevant information from your ML/AI pipeline e.g. with Prometheus and Grafana as described here: https://www.modular.com/ai-resources/setting-up-prometheus-grafana-for-ai-model-observability or using this reop as a template: https://github.com/Kludex/fastapi-prometheus-grafana
 
 **Lektion 8 **
